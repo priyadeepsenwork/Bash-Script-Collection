@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#	System health monitoring script
+#	Real-Time ystem health monitoring script
 
 # This script reports on:
 # - CPU usage
