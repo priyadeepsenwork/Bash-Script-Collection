@@ -185,6 +185,32 @@ display_memory_usage() {
 }
 
 
+
+#	--- Displaying Top Processes in System
+display_top_processes() {
+	echo -e "${YELLOW}${BOLD}Top 5 Processes (by CPU):${NC}"
+	echo -e "${BOLD}COMMAND			%CPU  %MEM${NC}"
+	# Using ps with POSIX-compliant flags for better portability within Linux
+	ps -eo comm,%cpu,%mem --sort=-%cpu | head -6 | tail -5 | awk '{printf "%-20s %5s%% %5s%%\n", $1, $2, $3}'
+}
+
+
+#	--- Display Disk usage ---
+display_disk_usage() {
+	echo -e "${YELLOW}${BOLD}Disk Usage (threshold ${DISK_USAGE_THRESHOLD}%):${NC}"
+	echo -e "${BOLD}Filesystem		Size   Used   Avail  Use%${NC}"
+	# Use -P for POSIX format to prevent line wrapping, skip tmpfs/devtmpfs
+	df -hP | grep -vE 'tmpfs|devtmpfs|Filesystem' | awk -V threshold="$DISK_USAGE_THRESHOLD" -v red="$RED" -v nc="$NC" '{
+		usage = substr($5, 1, length($5)-1);
+		if (usage > threshold) {
+			printf "%-22s %5s %6s %7s  %s%s%s\n", $1, $2, $3, $4, red, $5, nc;
+		} else {
+			printf "%-22s %5s %6s %7s  %s\n", $1, $2, $3, $4, $5;
+		}
+	}'
+}
+
+
 #	--- Main Display and Input handling function ---
 display_all() {
 	echo -ne "${HOME_CURSOR}"
