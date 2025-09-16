@@ -125,8 +125,64 @@ display_cpu_usage() {
 	echo ""
 }
 
-# Advanced Memory Usage Calculation by reading /proc/meminfo
+#	---Advanced Memory Usage Calculation by reading /proc/meminfo---
 
+# Get Memory Usage Function
+get_memory_usage(){
+	# Read Memory info from /proc/meminfo
+	local MEM_INFO
+	MEM_INFO=$(grep -E 'MemTotal|MemAvailable' /proc/meminfo)
+
+	local TOTAL_MEM AVAIL_MEM
+	TOTAL_MEM=$(echo "$MEM_INFO" | grep MemTotal | awk '{print $2}')
+	AVAIL_MEM=$(echo "$MEM_INFO" | grep MemAvailable | awk '{print $2}')
+
+
+	# Perform calculations (all values are in KiB from /proc/meminfo)
+	local USED_MEM=$((TOTAL_MEM - AVAIL_MEM))
+	local MEM_PERCENTAGE=$((100 * USED_MEM / TOTAL_MEM))
+	local USED_MB=$((USED_MEM / 1024))
+	local TOTAL_MB=$((TOTAL_MEM / 1024))
+
+
+	# Output the calculated values for the display function to consume
+	echo "$MEM_PERCENTAGE $USED_MB $TOTAL_MB"
+}
+
+# Display Memory Usage Function
+display_memory_usage() {
+	# Call the get function and read its output into variables
+	local USAGE_DATA
+	USAGE_DATA=$(get_memory_usage)
+
+	local MEM_PERCENTAGE USED_MB TOTAL_MB
+	read -r MEM_PERCENTAGE USED_MB TOTAL_MB <<< "$USAGE_DATA"
+
+
+	# --- BAR drawing logic
+	local BAR_LENGTH=50
+	local FILLED_LENGTH=$((MEM_PERCENTAGE * BAR_LENGTH / 100))
+	local BAR
+	BAR=$(printf "%*s" $FILLED_LENGTH | tr ' ' '█')
+	local EMPTY
+	EMPTY=$(printf "%*s" $((BAR_LENGTH - FILLED_LENGTH)) | tr ' ' '░')
+
+	# --- Color Selection logic
+	local BAR_COLOR
+	if [ "$MEM_PERCENTAGE" -gt 80 ]; then
+		BAR_COLOR=$RED
+	elif [ "$MEM_PERCENTAGE" -gt 50 ]; then
+		BAR_COLOR=$YELLOW
+	else
+		BAR_COLOR=$GREEN
+	fi
+
+
+	# --- Final Output
+	echo -e "${YELLOW}${BOLD}Memory Usage (Available):${NC}"
+	echo -e "RAM : [${BAR_COLOR}${BAR}${NC}${EMPTY}] ${MEM_PERCENTAGE}% (${USED_MB}MB / ${TOTAL_MB}MB used)"
+	echo ""
+}
 
 
 #	--- Main Display and Input handling function ---
