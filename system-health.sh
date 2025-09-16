@@ -66,7 +66,7 @@ draw_header() {
 #	-- Script Data Fetching and Display Functions ---
 
 
-#	Robust CPU usage calculation by reading /proc/stat
+# --- Robust CPU usage calculation by reading /proc/stat ---
 
 # CPU data Variables
 get_cpu_usage(
@@ -103,80 +103,91 @@ get_cpu_usage(
 )
 
 
+# Display CPU Usage
+display_cpu_usage() {
+	echo -e "${YELLOW}${BOLD}CPU Usage:${NC}"
+	CPU_NUM=${get_cpu_usage}
 
+	BAR_LENGTH=50
+	FILLED_LENGTH=$((CPU_NUM * BAR_LENGTH / 100))
+	BAR=$(printf "%*s" $FILLED_LENGTH | tr ' ' '█')
+	EMPTY=$(printf "%*s" $((BAR_LENGTH - FILLED_LENGTH)) | tr ' ' '░')
 
-
-
-
-
-
-
-
-
-#	2. Memory usage
-# Using 'free -m' to get memory details in Megabytes
-echo -e "${YELLOW}--- Memory Usage ---${NC}"
-
-# The 'Mem' line contains the main memory stats.
-MEM_INFO=$(free -m | grep Mem)
-TOTAL_MEM=$(echo $MEM_INFO | awk '{print $2}')
-USED_MEM=$(echo $MEM_INFO | awk '{print $3}')
-FREE_MEM=$(echo $MEM_INFO | awk '{print $4}')
-MEM_PERCENTAGE=$((100 *USED_MEM / $TOTAL_MEM))
-
-# Printing the variables to show memory status
-echo "Total Memory: ${TOTAL_MEM}MB"
-echo "Used Memory : ${USED_MEM}MB"
-echo "Free Memory : ${FREE_MEM}MB"
-echo ""
-
-# Color Coding based on usage:
-if [ $MEM_PERCENTAGE -gt 80 ]; then
-	MEM_COLOR=$RED
-elif [ $MEM_PERCENTAGE -gt 60 ]; then
-	MEM_COLOR=$YELLOW
-else
-	MEM_COLOR=$GREEN
-fi
-
-# echo "Total Memory: ${TOTAL_MEM}MB"
-echo -e "Memory Usage: ${MEM_COLOR}${MEM_PERCENTAGE}%${NC} (${USED_MEM}MB used, ${FREE_MEM}MB free)"
-echo ""
-
-
-
-#	3. Disk Usage
-echo -e "${YELLOW}--- Disk Usage ---${NC}"
-df -h | grep -E '^/dev' | while read output; do
-	usage=$(echo $output | awk '{print $5}' | sed 's/%//')
-	partition=$(echo $output | awk '{print $1}')
-	if [ $usage -gt $DISK_USAGE_THRESHOLD ]; then
-		echo -e "${RED}WARNING: ${partition} is ${usage}% full${NC}"
+	if [ $CPU_NUM -gt 80 ]; then
+		BAR_COLOR=$RED
+	elif [ $CPU_NUM -gt 50 ]; then
+		BAR_COLOR=$YELLOW
 	else
-		echo -r "${GREEN}${partition}: ${usage}% used${NC}"
+		BAR_COLOR=$GREEN
 	fi
-done
-echo ""
 
+	echo -e "CPU: [${BAR_COLOR}${BAR}${NC}${EMPTY}] ${CPU_NUM}%"
+	echo ""
+}
 
-#	4. Load Average
-echo -e "${YELLOW}--- Load Average ---${NC}"
-LOAD_AVG=$(uptime | awk -F'load average:' '{print $2}')
-echo "Load Average: $LOAD_AVG"
-echo ""
+# Advanced Memory Usage Calculation by reading /proc/meminfo
 
 
 
-#	--- End main function ---
+#	--- Main Display and Input handling function ---
+display_all() {
+	echo -ne "${HOME_CURSOR}"
+	draw_header
 
-# Trap Ctrl+C to exit gracefully
-trap 'echo -e "\n${GREEN}Monitoring stopped.${NC}"; exit 0' INT
+	# --- Static Info ---
+	echo -e "${YELLOW}${BOLD}System Information:${NC}"
+	echo "Hostname: ${hostname}"
+	echo "Uptime: $(uptime -p)"
+	echo ""
+
+	# --- View-dependent Info ---
+	case $CURRENT_VIEW in
+		0) display_top_processes ;;
+		1) display_disk_usage ;;
+	esac
+}
+
+handle_input() {
+	read -t 0.5 -n 1 key
+	case $key in
+		q|Q)
+			return 1 ;;
+		p|P)
+			echo -e "\n${YELLOW} Paused - Press any key to continue...${NC}"
+			read -n 1
+			;;
+		n|N)
+			CURRENT_VIEW=$(((CURRENT_VIEW + 1) % 2)) #Cycle through 2 views
+			;;
+	esac
+	return 0
+}
 
 
-#	Main Loop
-while true; 
-do
-	display_stats
-	sleep $REFRESH_INTERVAL
-done
+#	--- Main Execution Code
+main() {
+	trap 'restore_terminal' EXIT INT TERM
+	init_terminal
+
+	# Initial run to populate PREV values for CPU calc
+	get_cpu_usage > /dev/null
+
+	while true; do
+		display_all
+		if ! handle_input; then
+			break
+		fi
+	done
+}
+
+
+
+#	--- Run the Main function ---
+main
+
+
+
+
+
+
 
