@@ -68,14 +68,48 @@ draw_header() {
 
 #	Robust CPU usage calculation by reading /proc/stat
 
+# CPU data Variables
+get_cpu_usage(
+	CPU_LINE=$(grep "cpu" /proc/stat)
+	USER=$(echo "$CPU_LINE" | awk '{print $2}')
+	NICE=$(echo "$CPU_LINE" | awk '{print $3}')
+	SYSTEM=$(echo "$CPU_LINE" | awk '{print $4}')
+	IDLE=$(echo "$CPU_LINE" | awk '{print $5}')
+	IOWAIT=$(echo "$CPU_LINE" | awk '{print $6}')
+	IRQ=$(echo "$CPU_LINE" | awk '{print $7}')
+	SOFTIRQ=$(echo "$CPU_LINE" | awk '{print $8}')
 
-#	1. CPU usage
-# Using 'top' in batch mode to get a snapshot, then 'awk' to calculate usage
-# Grabs the 'us'(user) and 'sy'(system) percentages.
-echo -e "${YELLOW}--- CPU Usage ---${NC}"
-CPU_USAGE=$(top -b -n1 | grep "Cpu(s)" | awk '{print $2 + $4}' | sed 's/%us,//')
-echo "Current CPU usage: ${CPU_USAGE}%"
-echo ""
+	# IDLE calculation
+	TOTAL_IDLE=$((IDLE + IOWAIT))
+	NON_IDLE=$((USER + NICE + SYSTEM + IRQ + SOFTIRQ))
+	TOTAL=$((TOTAL_IDLE + NON_IDLE))
+
+	# Calculate difference from previous measurement
+	TOTAL_DIFF=$((TOTAL - PREV_TOTAL))
+	IDLE_DIFF=$((TOTAL_IDLE - PREV_IDLE))
+
+	# Avoid division by zero on first run
+	if [ "$TOTAL_DIFF" -eq 0 ]; then
+		CPU_PERCENTAGE=0
+	else
+		CPU_PERCENTAGE=$((100 * (TOTAL_DIFF - IDLE_DIFF) / TOTAL_DIFF))
+	fi
+
+	# Save current values for next iteration
+	PREV_TOTAL=$TOTAL
+	PREV_IDLE=$TOTAL_IDLE
+
+	echo $CPU_PERCENTAGE
+)
+
+
+
+
+
+
+
+
+
 
 
 
