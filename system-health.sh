@@ -172,7 +172,7 @@ display_memory_usage() {
 display_top_processes() {
         echo -e "${YELLOW}${BOLD}Top 5 Processes (by CPU):${NC}"
         echo -e "${BOLD}COMMAND                 %CPU   %MEM${NC}"
-        ps -eo comm,%cpu,%mem --sort=-%cpu | head -n 6 | tail -n 5 | awk '{printf "%-20s %5s%% %5s%%\n", $1, $2, $3}'
+        ps -eo comm,%cpu,%mem --sort=-%cpu | head -n 6 | tail -n 5 | awk '{printf "%-20s %5s %5s\n", $1, $2, $3}'
         echo "" # Added for spacing
 }
 
