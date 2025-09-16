@@ -22,22 +22,51 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+BOLD='\033[1m'	# Bold
+NC='\033[0m'	# No Color
 
 
-#	-- Script Main Function ---
-display_stats() {
-clear
+#	--- TERMINAL CONTROLS ---
+CLEAR_SCREEN='\033[2J'
+HOME_CURSOR='\033[H'
+HIDE_CURSOR='\033[?251'
+SHOW_CURSOR='\033[?25h'
+
+#	--- State Variables ---
+CURRENT_VIEW=0	#0: Processes, 1: Disk
+PREV_IDLE=0
+PREV_TOTAL=0
+
+#	--- Initialize $ Restore Terminal ---
+init_terminal() {
+	echo -ne "${HIDE_CURSOR}${CLEAR_SCREEN}${HOME_CURSOR}"
+	stty -echo cbreak
+}
+
+restore_terminal() {
+	stty echo -cbreak
+	echo -ne "${SHOW_CURSOR}"
+	clear
+}
 
 
-#	 Script Body
-echo -e "${BLUE}=================================================${NC}"
-echo -e "${BLUE} Real-Time System Health Monitor${NC}"
-echo -e "${BLUE}=================================================${NC}"
-echo -e "${GREEN}Last updated: $(date)"
-echo -e "${YELLOW}Press Ctrl+C to Exit"
-echo ""
+#	--- HEADER & FOOTER ---
+draw_header() {
+	echo -e "${HOME_CURSOR}${BLUE}${BOLD}"
+	echo "╔══════════════════════════════════════════╗"
+	echo "║	         Interative System Monitor       ║"
+	echo "╠══════════════════════════════════════════╠"
+	echo "║ Commands: [q]uit | [n]ext view | [p]ause ║"
+	echo "╚══════════════════════════════════════════╝"
+	echo ""
+}
+# need to add colors here
 
+
+#	-- Script Data Fetching and Display Functions ---
+
+
+#	Robust CPU usage calculation by reading /proc/stat
 
 
 #	1. CPU usage
@@ -103,7 +132,7 @@ echo "Load Average: $LOAD_AVG"
 echo ""
 
 
-}
+
 #	--- End main function ---
 
 # Trap Ctrl+C to exit gracefully
